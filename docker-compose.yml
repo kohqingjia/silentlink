@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks: [private]
+    networks:
+      private:
+        aliases: [silentlink-db]
     healthcheck:
       test: [CMD-SHELL, 'pg_isready -U silentlink -d silentlink']
       interval: 10s
@@ -25,7 +27,7 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg://silentlink:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/silentlink
+      DATABASE_URL: postgresql+psycopg://silentlink:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@silentlink-db:5432/silentlink
       DATA_DIR: /data/recordings
       MAX_UPLOAD_BYTES: 12582912
       RATE_LIMIT_PER_MINUTE: 120
