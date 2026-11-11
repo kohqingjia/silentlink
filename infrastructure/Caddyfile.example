@@ -1,0 +1,23 @@
+# Replace research.example.com with a hostname that resolves to the VPS.
+# Add to your existing Caddy config; do not replace unrelated routes.
+research.example.com {
+    encode zstd gzip
+    request_body {
+        max_size 12MB
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        X-Frame-Options DENY
+        Permissions-Policy "microphone=(), camera=(), geolocation=()"
+        Strict-Transport-Security "max-age=31536000"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    }
+    @api path /api/* /health
+    handle @api {
+        reverse_proxy silentlink-api:8000
+    }
+    handle {
+        reverse_proxy silentlink-dashboard:8080
+    }
+}

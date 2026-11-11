@@ -1,0 +1,74 @@
+name: silentlink
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: silentlink
+      POSTGRES_USER: silentlink
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [private]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U silentlink -d silentlink']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://silentlink:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/silentlink
+      DATA_DIR: /data/recordings
+      MAX_UPLOAD_BYTES: 12582912
+      RATE_LIMIT_PER_MINUTE: 120
+    volumes:
+      - recordings:/data/recordings
+    networks:
+      private: {}
+      edge:
+        aliases: [silentlink-api]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 768m
+    logging: *logging
+  dashboard:
+    build: ./dashboard
+    restart: unless-stopped
+    networks:
+      edge:
+        aliases: [silentlink-dashboard]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://localhost:8080/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 128m
+    logging: *logging
+volumes:
+  postgres_data:
+  recordings:
+networks:
+  private:
+    internal: true
+  edge:
+    external: true
+    name: ${PROXY_NETWORK:-silentlink-edge}
