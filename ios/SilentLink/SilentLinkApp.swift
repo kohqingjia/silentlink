@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import UIKit
 
 @main struct SilentLinkApp: App {
     @StateObject private var store = RecordingStore()

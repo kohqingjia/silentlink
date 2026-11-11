@@ -121,7 +121,7 @@ import UIKit
         if var item = active {
             if let reason { item.recording.interruptions.append(Interruption(t: item.recording.samples.last?.t ?? 0, reason: reason)) }
             if item.recording.samples.count >= 2 {
-                do { try store?.save(item); store?.uploadPending() } catch { error = "Save failed: \(error.localizedDescription). A recovery draft may remain." }
+                do { try store?.save(item); store?.uploadPending() } catch { self.error = "Save failed: \(error.localizedDescription). A recovery draft may remain." }
             } else { store?.clearDraft(); error = error ?? "No usable samples received; nothing saved." }
         }
         active = nil; refresh()

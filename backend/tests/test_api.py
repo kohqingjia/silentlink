@@ -101,3 +101,12 @@ def test_nonfinite_measurement_rejected(client, auth):
     client.post('/api/v1/sessions', json=s, headers=auth)
     r['samples'][1]['user_acceleration'] = {'x': 'NaN', 'y': 0, 'z': 0}
     assert client.post('/api/v1/recordings', json=r, headers=auth).status_code == 422
+
+
+def test_raw_nonfinite_json_returns_validation_error(client, auth):
+    s, r = fixture_data()
+    client.post('/api/v1/sessions', json=s, headers=auth)
+    r['samples'][1]['user_acceleration'] = {'x': float('nan'), 'y': 0, 'z': 0}
+    response = client.post('/api/v1/recordings', content=json.dumps(r), headers={**auth, 'Content-Type': 'application/json'})
+    assert response.status_code == 422
+    assert 'input' not in response.json()['detail'][0]

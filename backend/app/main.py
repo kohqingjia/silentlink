@@ -13,6 +13,7 @@ from typing import Annotated
 from uuid import UUID
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from starlette.background import BackgroundTask
@@ -78,6 +79,13 @@ async def audit(request, call_next):
     # Do not log query strings, authorization headers or sensor payloads.
     log.info(json.dumps({'request_id': request_id, 'method': request.method, 'status': response.status_code, 'elapsed_ms': round((time.monotonic() - start) * 1000)}))
     return response
+
+
+@api.exception_handler(RequestValidationError)
+async def invalid_request(request, exc):
+    # Never echo sensor payloads; non-finite inputs are not JSON serializable.
+    details = [{'loc': list(e['loc']), 'msg': e['msg'], 'type': e['type']} for e in exc.errors()]
+    return JSONResponse({'detail': details}, status_code=422)
 
 
 @api.exception_handler(Exception)
