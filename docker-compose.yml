@@ -57,7 +57,7 @@ services:
       edge:
         aliases: [silentlink-dashboard]
     healthcheck:
-      test: [CMD, wget, -q, -O, /dev/null, 'http://localhost:8080/']
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/']
       interval: 30s
       timeout: 5s
       retries: 3
