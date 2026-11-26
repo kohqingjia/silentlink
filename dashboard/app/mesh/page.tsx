@@ -19,6 +19,14 @@ import {
 import s from "../camera.module.css";
 import m from "./mesh.module.css";
 import {
+  practiceGroups,
+  prompts,
+  takesPerSentence,
+  sentenceKey,
+  countExamples,
+  nextSentence,
+} from "./practice";
+import {
   drawMesh,
   type Edge,
   type MeshCapture,
@@ -48,14 +56,6 @@ type Match = {
   };
 };
 type Progress = { stage: string; percent: number | null; eta: number | null };
-const prompts = [
-  "Please bring me a glass of water",
-  "Thank you for helping me today",
-  "Can we meet tomorrow morning",
-  "I would like a cup of tea",
-  "Please turn on the lights",
-  "I need a little more time",
-];
 const rounded = (values: number[]) =>
   values.map((n) => Math.round(n * 100000) / 100000);
 
@@ -108,13 +108,25 @@ export default function MeshLab() {
   const initTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureRef = useRef<MeshCapture | null>(null);
   const replayStart = useRef(0);
+  const resumePractice = useRef(true);
   view.current = { overlay, angle, replaying };
   captureRef.current = capture;
-  const counts = examples.reduce<Record<string, number>>(
-    (out, e) => ({ ...out, [e.label]: (out[e.label] || 0) + 1 }),
-    {},
+  const counts = countExamples(examples);
+  const eligiblePhrases = Object.values(counts).filter(
+    (n) => n >= takesPerSentence,
+  ).length;
+  const trained = eligiblePhrases >= 2;
+  const currentTakes = counts[sentenceKey(label)] || 0;
+  const currentPrompt = prompts.findIndex(
+    (text) => sentenceKey(text) === sentenceKey(label),
   );
-  const trained = Object.values(counts).filter((n) => n >= 3).length >= 2;
+  const practiceTakes = prompts.reduce(
+    (sum, text) =>
+      sum + Math.min(takesPerSentence, counts[sentenceKey(text)] || 0),
+    0,
+  );
+  const practiceTarget = prompts.length * takesPerSentence;
+  const practicePercent = Math.round((100 * practiceTakes) / practiceTarget);
   const exact = tests.filter((t) => t.score?.exact_match).length;
   const totalWords = tests.reduce(
       (n, t) => n + (t.score?.reference_words || 0),
@@ -212,6 +224,31 @@ export default function MeshLab() {
     const data = await api("/library", {}, secret);
     setExamples(data.examples);
     setTests(data.tests);
+    if (resumePractice.current) {
+      resumePractice.current = false;
+      if (!captureRef.current && recordingStart.current === null) {
+        const savedCounts = countExamples(data.examples);
+        setLabel(
+          prompts.find(
+            (text) => (savedCounts[sentenceKey(text)] || 0) < takesPerSentence,
+          ) || prompts[0],
+        );
+      }
+    }
+  }
+  function chooseSentence(text: string) {
+    resumePractice.current = false;
+    setLabel(text);
+    setCapture(null);
+    recordingID.current = "";
+    setReplaying(false);
+    setMatch(null);
+    setError("");
+    setNotice(
+      capture && !savedCapture
+        ? "Sentence changed. The unsaved take was discarded; record fresh motion for this sentence."
+        : "",
+    );
   }
   async function connect() {
     setError("");
@@ -425,6 +462,7 @@ export default function MeshLab() {
       setError("Enter the sentence you will mouth first.");
       return;
     }
+    resumePractice.current = false;
     setReplaying(false);
     setMatch(null);
     setCapture(null);
@@ -534,11 +572,28 @@ export default function MeshLab() {
         );
         return;
       }
-      if (kind === "save")
+      if (kind === "save") {
+        // Update immediately from the accepted save, even if library refresh is slow.
+        setExamples((existing) =>
+          existing.some((example) => example.id === data.id)
+            ? existing
+            : [
+                {
+                  id: data.id,
+                  label: data.label,
+                  created: Date.now() / 1000,
+                  duration_s: data.duration_s,
+                  frames: data.frames,
+                  observed_fps: data.observed_fps,
+                  tracking_percent: data.tracking_percent,
+                },
+                ...existing,
+              ],
+        );
         setNotice(
           `Saved “${data.label}” as movement data. Future phrase comparisons will include it.`,
         );
-      else setMatch(data);
+      } else setMatch(data);
       void refresh().catch((e) => setError(e.message));
     };
     xhr.onerror = () => {
@@ -865,10 +920,7 @@ export default function MeshLab() {
                     disabled={locked}
                     onClick={() => {
                       setMode(tab);
-                      setMatch(null);
-                      setNotice("");
-                      setCapture(null);
-                      setReplaying(false);
+                      chooseSentence(label);
                     }}
                   >
                     {tab === "teach" ? "Teach sentences" : "Test fresh motion"}
@@ -883,9 +935,39 @@ export default function MeshLab() {
                 </h2>
                 <p className={s.description}>
                   {mode === "teach"
-                    ? "Record the sentence you actually mouth. Save three separate takes of at least two phrases to begin matching."
+                    ? "Build your phrase library one take at a time. Start with three separate takes of two sentences, then keep adding more at your own pace."
                     : "Record a new take. Your expected sentence is used only to score the result after recognition."}
                 </p>
+                {mode === "teach" && (
+                  <section
+                    className={m.practice}
+                    aria-label="Guided sentence practice"
+                  >
+                    <div className={m.practiceHeading}>
+                      <strong>{prompts.length} sentences to practice</strong>
+                      <span>{practicePercent}% collected</span>
+                    </div>
+                    <progress
+                      className={s.progress}
+                      aria-label="Practice collection progress"
+                      max={practiceTarget}
+                      value={practiceTakes}
+                    />
+                    <p>
+                      {practiceTakes} / {practiceTarget} starting takes saved ·
+                      3 per sentence
+                    </p>
+                    <p>
+                      {trained
+                        ? `${eligiblePhrases} phrases ready to compare. You can try a fresh test now or keep teaching.`
+                        : `First comparison: ${Math.min(2, eligiblePhrases)} / 2 phrases ready. Each needs 3 separate takes.`}
+                    </p>
+                    <small>
+                      Collection progress, not model accuracy. Revisit sentences
+                      on another day and test new takes to check improvement.
+                    </small>
+                  </section>
+                )}
                 <label className={s.field}>
                   <span className={s.label}>
                     {mode === "teach"
@@ -898,23 +980,76 @@ export default function MeshLab() {
                     maxLength={200}
                     value={label}
                     disabled={locked || savedCapture}
-                    onChange={(e) => setLabel(e.target.value)}
+                    onChange={(e) => {
+                      resumePractice.current = false;
+                      setLabel(e.target.value);
+                    }}
                   />
                 </label>
+                {mode === "teach" && (
+                  <p className={m.takeHint} aria-live="polite">
+                    {currentPrompt >= 0
+                      ? `Sentence ${currentPrompt + 1} of ${prompts.length}`
+                      : "Your own sentence"}{" "}
+                    · {currentTakes} saved{" "}
+                    {currentTakes === 1 ? "take" : "takes"}
+                    {currentTakes < takesPerSentence
+                      ? ` · ${takesPerSentence - currentTakes} more to start comparing this phrase`
+                      : " · Ready for comparison"}
+                  </p>
+                )}
                 <div className={s.chips}>
                   <button
                     className={s.chip}
-                    disabled={locked || savedCapture}
-                    onClick={() =>
-                      setLabel(
-                        prompts[(prompts.indexOf(label) + 1) % prompts.length],
-                      )
-                    }
+                    disabled={locked}
+                    onClick={() => chooseSentence(nextSentence(label, counts))}
                   >
                     Next sentence
                   </button>
+                  {mode === "teach" && (
+                    <button
+                      className={s.chip}
+                      disabled={locked}
+                      onClick={() => chooseSentence("")}
+                    >
+                      Use my own sentence
+                    </button>
+                  )}
                   <span className={s.hint}>Natural pace · up to 8 seconds</span>
                 </div>
+                {mode === "teach" && (
+                  <details className={m.sentenceBank}>
+                    <summary>
+                      Choose from all {prompts.length} sentences
+                    </summary>
+                    <div className={m.sentenceList}>
+                      {practiceGroups.map((group) => (
+                        <div key={group.title}>
+                          <h3>{group.title}</h3>
+                          {group.sentences.map((text) => (
+                            <button
+                              key={text}
+                              className={m.sentenceOption}
+                              disabled={locked}
+                              aria-pressed={
+                                sentenceKey(text) === sentenceKey(label)
+                              }
+                              onClick={() => chooseSentence(text)}
+                            >
+                              <span>{text}</span>
+                              <span className={m.takeCount}>
+                                {counts[sentenceKey(text)] || 0} /{" "}
+                                {takesPerSentence}
+                                {(counts[sentenceKey(text)] || 0) >=
+                                  takesPerSentence && <Check size={14} />}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 {progress && (
                   <div className={s.status} role="status">
                     <div className={s.statusLine}>
@@ -1003,22 +1138,50 @@ export default function MeshLab() {
                         Download points
                       </button>
                     </div>
-                    <button
-                      className={`${s.button} ${s.primary}`}
-                      style={{ marginTop: 14, width: "100%" }}
-                      disabled={
-                        locked || savedCapture || (mode === "test" && !trained)
-                      }
-                      onClick={() =>
-                        void submit(mode === "teach" ? "save" : "test")
-                      }
-                    >
-                      {savedCapture
-                        ? "Saved training take · record a fresh test"
-                        : mode === "teach"
-                          ? "Save sentence motion"
-                          : "Test this fresh take"}
-                    </button>
+                    {savedCapture && mode === "teach" ? (
+                      <div className={m.continuePractice}>
+                        <p role="status">
+                          Take saved · {currentTakes} for this sentence.{" "}
+                          {currentTakes < takesPerSentence
+                            ? `${takesPerSentence - currentTakes} more to reach the starting target.`
+                            : "You can move on or record extra takes."}
+                        </p>
+                        <button
+                          className={`${s.button} ${s.primary}`}
+                          disabled={locked}
+                          onClick={() => {
+                            if (currentTakes >= takesPerSentence)
+                              chooseSentence(nextSentence(label, counts));
+                            else if (camera && ready && faces === 1)
+                              void beginRecording();
+                            else chooseSentence(label);
+                          }}
+                        >
+                          {currentTakes >= takesPerSentence
+                            ? "Continue to next sentence"
+                            : `${camera && ready && faces === 1 ? "Record" : "Prepare"} take ${currentTakes + 1} of ${takesPerSentence}`}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className={`${s.button} ${s.primary}`}
+                        style={{ marginTop: 14, width: "100%" }}
+                        disabled={
+                          locked ||
+                          savedCapture ||
+                          (mode === "test" && !trained)
+                        }
+                        onClick={() =>
+                          void submit(mode === "teach" ? "save" : "test")
+                        }
+                      >
+                        {savedCapture
+                          ? "Saved training take · record a fresh test"
+                          : mode === "teach"
+                            ? "Save sentence motion"
+                            : "Test this fresh take"}
+                      </button>
+                    )}
                   </div>
                 )}
                 {mode === "test" && !trained && (
@@ -1122,7 +1285,7 @@ export default function MeshLab() {
                           <strong>{e.label}</strong>
                           <p>
                             {e.duration_s}s · {e.frames} frames ·{" "}
-                            {counts[e.label]} takes for this phrase
+                            {counts[sentenceKey(e.label)]} takes for this phrase
                           </p>
                         </div>
                         <div className={s.actionsGroup}>
@@ -1205,6 +1368,8 @@ export default function MeshLab() {
                   disabled={locked}
                   onClick={() => {
                     setToken("");
+                    resumePractice.current = true;
+                    recordingID.current = "";
                     sessionStorage.removeItem("silentlink-camera-key");
                     setLogin(false);
                     stopCamera();

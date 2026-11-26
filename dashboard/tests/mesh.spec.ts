@@ -164,10 +164,8 @@ test("motion capture uploads only geometry, supports replay and deletion", async
     .getByRole("button", { name: "Save sentence motion", exact: true })
     .click();
   await expect(
-    page.getByText("Saved training take · record a fresh test", {
-      exact: true,
-    }),
-  ).toBeDisabled();
+    page.getByRole("button", { name: "Record take 2 of 3", exact: true }),
+  ).toBeEnabled();
   // Replay survives a reload and does not need camera permission or the source video.
   await page.reload();
   await page
@@ -220,4 +218,140 @@ test("cancel startup and camera denial are recoverable; mesh fits mobile", async
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+});
+
+test("practice continues after saves, counts accepted takes and resumes unfinished sentences", async ({
+  page,
+}) => {
+  await setup(page);
+  const examples = [
+    {
+      id: "saved-before-this-visit",
+      label: "please bring me a glass of water",
+      duration_s: 2,
+      frames: 40,
+    },
+  ];
+  const postedIds: string[] = [];
+  let rejectFirst = true;
+  await page.route("**/api/vision/mesh/library", (route) =>
+    route.fulfill({ json: { examples, tests: [] } }),
+  );
+  await page.route("**/api/vision/mesh/examples", (route) => {
+    const payload = route.request().postDataJSON();
+    postedIds.push(payload.id);
+    if (rejectFirst) {
+      rejectFirst = false;
+      return route.fulfill({
+        status: 422,
+        json: { detail: "Tracking was interrupted. Please retry." },
+      });
+    }
+    expect(payload.label).toBe("Please bring me a glass of water");
+    const example = {
+      id: payload.id,
+      label: payload.label.toLowerCase(),
+      duration_s: 1,
+      frames: payload.capture.frames.length,
+    };
+    examples.push(example);
+    return route.fulfill({ status: 201, json: example });
+  });
+  await page.reload();
+  await expect(page.getByLabel("Practice collection progress")).toHaveAttribute(
+    "value",
+    "1",
+  );
+  await expect(
+    page.getByText("Sentence 1 of 30 · 1 saved take", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Enable camera & mesh" }).click();
+  await expect(
+    page.getByText("Face tracked · 478 points", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Record sentence", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Finish motion", exact: true }),
+  ).toBeEnabled({ timeout: 6000 });
+  await page.waitForTimeout(900);
+  await page
+    .getByRole("button", { name: "Finish motion", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Save sentence motion", exact: true })
+    .click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Tracking was interrupted" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Practice collection progress")).toHaveAttribute(
+    "value",
+    "1",
+  );
+  await page
+    .getByRole("button", { name: "Save sentence motion", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Record take 3 of 3", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Next sentence", exact: true }),
+  ).toBeEnabled();
+  await expect(page.getByLabel("Practice collection progress")).toHaveAttribute(
+    "value",
+    "2",
+  );
+  await page
+    .getByRole("button", { name: "Record take 3 of 3", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Finish motion", exact: true }),
+  ).toBeEnabled({ timeout: 6000 });
+  await page.waitForTimeout(900);
+  await page
+    .getByRole("button", { name: "Finish motion", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Save sentence motion", exact: true })
+    .click();
+  await expect(page.getByLabel("Practice collection progress")).toHaveAttribute(
+    "value",
+    "3",
+  );
+  await page
+    .getByRole("button", { name: "Continue to next sentence", exact: true })
+    .click();
+  await expect(page.getByLabel("Sentence to teach")).toHaveValue(
+    "Thank you for helping me today",
+  );
+  await expect(page.getByLabel("Sentence to teach")).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Save sentence motion", exact: true }),
+  ).toHaveCount(0);
+  expect(postedIds[0]).toBe(postedIds[1]); // Retry the same take, not a duplicate example.
+  expect(postedIds[2]).not.toBe(postedIds[1]); // Another recording gets a fresh ID.
+  await page.reload();
+  await expect(page.getByLabel("Sentence to teach")).toHaveValue(
+    "Thank you for helping me today",
+  );
+  await page.getByText("Choose from all 30 sentences", { exact: true }).click();
+  const bank = page
+    .locator("details")
+    .filter({ hasText: "Choose from all 30 sentences" });
+  await expect(bank.getByRole("button")).toHaveCount(30);
+  await bank
+    .getByRole("button", { name: /Please move a little closer to me/ })
+    .click();
+  await expect(page.getByLabel("Sentence to teach")).toHaveValue(
+    "Please move a little closer to me",
+  );
+  await page
+    .getByRole("button", { name: "Use my own sentence", exact: true })
+    .click();
+  await expect(page.getByLabel("Sentence to teach")).toHaveValue("");
+  await page.getByLabel("Sentence to teach").fill("A sentence of my own");
+  await expect(
+    page.getByText("Your own sentence · 0 saved takes", { exact: false }),
+  ).toBeVisible();
 });

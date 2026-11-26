@@ -57,3 +57,80 @@
 .camera video {
   object-fit: cover;
 }
+.practice {
+  margin: 18px 0;
+  padding: 16px;
+  background: #f0f5ec;
+  border: 1px solid #dce6d5;
+  border-radius: 12px;
+}
+.practiceHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.practice p {
+  font-size: 14px;
+  margin-top: 9px;
+}
+.practice small {
+  display: block;
+  font-size: 13px;
+  color: #52694d;
+  margin-top: 10px;
+}
+.takeHint {
+  font-size: 14px;
+  color: #42634d;
+  margin: 10px 0 !important;
+}
+.sentenceBank {
+  margin: 16px 0;
+  font-size: 14px;
+}
+.sentenceBank summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 9px 0;
+}
+.sentenceList {
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 6px;
+}
+.sentenceList h3 {
+  margin: 15px 0 5px;
+  font-size: 14px;
+  color: #52694d;
+}
+.sentenceOption {
+  width: 100%;
+  padding: 10px 8px;
+  text-align: left;
+  justify-content: space-between !important;
+  border-radius: 6px;
+  border-bottom: 1px solid #e2eadd;
+  color: #263d2c;
+}
+.sentenceOption[aria-pressed="true"] {
+  background: #e8f5dc;
+}
+.takeCount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: #477557;
+}
+.continuePractice {
+  margin-top: 16px;
+}
+.continuePractice p {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.continuePractice button {
+  width: 100%;
+}

@@ -8,16 +8,30 @@ remains at `/`, and AirPods research at `/airpods`.
 1. Enable the camera. The first visit downloads approximately 19 MB of tracking
    assets from SilentLink, with measured download percentage and estimated time.
 2. Switch between **Camera + mesh** and **Mesh only**. Rotate the mesh-only view.
-3. Enter the short sentence you will mouth, press **Record sentence**, wait for
+3. Follow the **30-sentence practice bank** or enter your own short sentence,
+   press **Record sentence**, wait for
    the countdown, and finish when done (eight-second maximum).
 4. Replay or download the motion locally. Connect the existing dashboard key and
    choose **Save sentence motion** to add a labelled example to your private VPS
    workspace. Previewing or recording alone never uploads anything.
+   After saving, use **Record take 2 of 3**, then **Record take 3 of 3**. When
+   those takes are saved, **Continue to next sentence** clears the old capture
+   and prepares the next unfinished prompt. **Next sentence** and the full
+   sentence bank also let you choose another prompt at any time while idle.
+   Changing prompts discards any unsaved capture; it never relabels a saved one.
 5. Record three separate takes each of at least two distinct short phrases. Use
    **Test fresh motion** for another take. The expected text is used only after
    recognition, to calculate word error rate and exact phrase accuracy.
 6. Confirm the actual sentence before saving a test take as another example.
    Predictions are never automatically accepted as training labels.
+
+Practice progress counts up to three accepted takes for each of the 30 prompts
+(90 starting takes). Extra takes and custom sentences stay in the library; the
+percentage measures collection, not model quality or English coverage. Returning
+to the page resumes the first unfinished prompt using your saved library.
+Three takes is the baseline's eligibility minimum, not a guarantee of accuracy.
+Pause whenever you like; natural examples from different days are useful for
+testing whether performance holds up across sessions.
 
 ## What the wireframe represents
 
