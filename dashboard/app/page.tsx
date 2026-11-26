@@ -293,7 +293,7 @@ export default function CameraWorkspace() {
       cancelled = true;
       clearTimeout(poll);
     };
-  }, [job?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [job?.id, job?.stage === "cancelled"]); // Stop polling before a late response can revive a cancelled job.
 
   async function connect() {
     setConnecting(true);
