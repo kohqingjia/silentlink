@@ -19,3 +19,5 @@ backups/
 reports/
 
 *.tsbuildinfo
+test-results/
+playwright-report/

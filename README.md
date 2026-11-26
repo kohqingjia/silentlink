@@ -1,10 +1,28 @@
 # SilentLink
 
-**A real-data research platform for AirPods headphone motion and silent articulation.**
+**Camera-first silent speech research: lips → text → voice.**
 
-SilentLink records the processed motion that Apple exposes, stores it locally on an iPhone, and optionally uploads it to a private research API and dashboard. It does **not** transcribe silent speech. Whether these measurements contain useful speech-related information is an open research question.
+Live website: **https://silentlink.kohqingjia.io/**
 
-## Milestone status
+Phase 1 uses a laptop webcam and a pretrained Auto-AVSR model on the existing VPS.
+Record a short sentence, review the transcript, and play it with a browser voice.
+Teach a small personal vocabulary with repeated examples, then test on fresh
+recordings with actual word error rate and exact phrase accuracy. Live phrases
+uses four-second recordings with a processing pause; it is not a causal streaming
+model. No microphone, Xcode, paid API, or new subscription is needed.
+
+The interface shows real upload/frame progress, processing stages, elapsed time,
+measured estimates when available, and cancel/retry controls. No single sentence
+can calibrate the whole English dictionary. Sentence decoding uses pretrained
+weights; personal vocabulary matching is a separate experimental baseline.
+
+See **[camera setup, limitations, data handling, and deployment](docs/CAMERA.md)**
+and [model attribution](vision/NOTICE.md). No personal accuracy has been claimed.
+
+The original AirPods/iOS platform is retained as Phase 2 at **/airpods**. Its motion
+pipeline does not transcribe silent speech. Existing data and APIs are preserved.
+
+## Phase 2: preserved AirPods research
 
 | Area | Implemented | Verification / remaining work |
 | --- | --- | --- |
@@ -77,11 +95,11 @@ python -m app.provision --owner researcher --device local-dashboard
 uvicorn app.main:app --port 8000
 ```
 
-The native app requires HTTPS. For browser development, use `npm run dev` and a local reverse proxy that routes `/api/*` and `/health` to port 8000 and all other paths to port 3000, under one origin. No CORS wildcard or browser credential storage is enabled. Alternatively, serve `dashboard/out` and the API through the Caddy example with a real test hostname.
+The native app requires HTTPS. For browser development, use `npm run dev` and a local reverse proxy that routes `/api/*` and `/health` to port 8000 and all other paths to port 3000, under one origin. No CORS wildcard is enabled. The camera workspace uses tab-scoped sessionStorage for its key; the AirPods page keeps its key in memory. Alternatively, serve `dashboard/out` and the API through the Caddy example with a real test hostname.
 
 ## VPS deployment
 
-The server needs Docker Engine and Compose, a reachable hostname and HTTPS reverse proxy. Rough starting budget: **2 vCPU, 2 GB RAM, 10 GB free storage**, with additional storage sized to real recordings and backups. The dashboard build may need another 1–2 GB temporarily. No GPU is required. ML runs offline and is not part of the serving containers.
+The server needs Docker Engine and Compose, a reachable hostname and HTTPS reverse proxy. For the AirPods-only stack: **2 vCPU, 2 GB RAM, 10 GB free storage**, with additional storage sized to real recordings and backups. The dashboard build may need another 1–2 GB temporarily. No GPU is required. The camera stack additionally needs about 6 GB RAM for inference, 3 CPU cores, and checkpoint/container storage. See [camera deployment](docs/CAMERA.md).
 
 ```sh
 git clone https://github.com/kohqingjia/silentlink.git

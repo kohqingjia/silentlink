@@ -50,6 +50,33 @@ services:
     cap_drop: [ALL]
     mem_limit: 768m
     logging: *logging
+  vision:
+    build: ./vision
+    restart: unless-stopped
+    environment:
+      AUTH_URL: http://silentlink-api:8000/api/v1/me
+      MODEL_THREADS: '3'
+    volumes:
+      - vision_data:/data
+      - /home/qingjia/apps/silentlink-models:/models:ro
+    networks:
+      edge:
+        aliases: [silentlink-vision]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 6g
+    cpus: 3
+    pids_limit: 192
+    logging: *logging
   dashboard:
     build: ./dashboard
     restart: unless-stopped
@@ -68,6 +95,7 @@ services:
 volumes:
   postgres_data:
   recordings:
+  vision_data:
 networks:
   private:
     internal: true

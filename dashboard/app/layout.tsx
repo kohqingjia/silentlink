@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "SilentLink · Research workspace",
+  title: "SilentLink · Give your silence a voice",
   description:
-    "A real-data workspace for headphone motion and silent articulation research.",
+    "Webcam lip-reading research: teach words, test accuracy, and turn silent speech into a voice.",
 };
 export default function RootLayout({
   children,
