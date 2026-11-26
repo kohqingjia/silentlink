@@ -1,0 +1,5 @@
+MediaPipe Tasks Vision
+Copyright 2022-2023 The MediaPipe Authors.
+Licensed under the Apache License, Version 2.0; see mediapipe-apache-2.0.txt.
+https://github.com/google-ai-edge/mediapipe
+Unmodified package JavaScript and WebAssembly, with an official Face Landmarker model downloaded separately during build.

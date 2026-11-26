@@ -22,3 +22,19 @@ CPU configuration, silently mouthed speech, or any individual user.
 SilentLink's personal vocabulary baseline uses normalized mean and standard
 deviation of frozen frontend features, cosine nearest examples, and conservative
 experimental rejection thresholds. It is not a validated model or fine-tuning.
+
+## Browser face mesh
+
+The 3D motion lab uses Google's `@mediapipe/tasks-vision` 1.2.3 (Apache 2.0)
+and the official Face Landmarker float16 model, downloaded separately during
+the dashboard build. Assets and model run locally in the browser and are served
+from the same origin. MediaPipe's bundled copyright notices are preserved.
+See the [MediaPipe source and license](https://github.com/google-ai-edge/mediapipe)
+and [Face Landmarker documentation](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker).
+Model SHA-256: `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`.
+
+[SilentSpeak](https://github.com/shashank11yadav/SilentSpeak) was reviewed as a
+reference for landmark-based recognition and pose-normalized features. Its ONNX
+word model and dataset are not included. SilentLink's motion-only baseline uses
+temporal distance matching of confirmed phrase examples, not a pretrained
+English sentence model. See `docs/MESH.md` for limitations and retention.

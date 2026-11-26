@@ -4,6 +4,12 @@
 
 Live website: **https://silentlink.kohqingjia.io/**
 
+**New: [3D motion lab](https://silentlink.kohqingjia.io/mesh)** — real local webcam
+face tracking, rotatable mesh, and coordinate-only capture/replay. Teach whole
+short phrases and compare fresh motion with your confirmed examples. This
+experimental matcher recognizes taught phrases; it does not yet compose unseen
+sentences. See [mesh setup, data handling, and limits](docs/MESH.md).
+
 Phase 1 uses a laptop webcam and a pretrained Auto-AVSR model on the existing VPS.
 Record a short sentence, review the transcript, and play it with a browser voice.
 Teach a small personal vocabulary with repeated examples, then test on fresh

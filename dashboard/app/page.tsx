@@ -632,6 +632,7 @@ export default function CameraWorkspace() {
         </a>
         <nav className={s.toplinks} aria-label="Main navigation">
           <span className={s.phase}>PHASE 01 · CAMERA</span>
+          <a href="/mesh">3D motion lab</a>
           <a href="/airpods">AirPods research</a>
           <button
             className={`${s.keyButton} ${token ? s.connected : ""}`}
@@ -675,6 +676,7 @@ export default function CameraWorkspace() {
             <section className={s.panel} aria-label="Camera recording">
               <div className={s.panelHead}>
                 <h2>Your camera</h2>
+                <a href="/mesh" className={s.chip}>Try the 3D motion lab</a>
                 <span className={s.tag}>
                   <MicOff
                     size={12}

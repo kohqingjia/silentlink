@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 import httpx
 
 from metrics import personal_match, score, words
+from mesh import router as mesh_router
 
 DATA = Path(os.getenv("DATA_DIR", "/data"))
 MAX_BYTES = 12 * 1024 * 1024
@@ -244,6 +245,7 @@ async def lifespan(app):
 
 
 app = FastAPI(title="SilentLink camera research", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.include_router(mesh_router(owner, DATA))
 
 
 @app.get("/api/vision/status")
